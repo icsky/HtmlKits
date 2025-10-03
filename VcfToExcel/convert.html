@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VCF 转 Excel 转换器</title>
+    <script src="xlsx.full.min.js"></script> 
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .file-input {
+            margin: 20px 0;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VCF 转 Excel 转换器</h1>
+        
+        <div class="file-input">
+            <p>请选择 vCard (.vcf) 文件：</p>
+            <input type="file" id="vcfFile" accept=".vcf,.vcard">
+        </div>
+        
+        <button id="convertBtn" disabled>转换为 Excel</button>
+        
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div class="info">
+            <p>此工具将帮助您将 vCard (VCF) 联系人文件转换为 Excel 表格格式。</p>
+            <p>转换后的 Excel 文件将包含联系人的姓名、电话、电子邮件等信息。</p>
+        </div>
+    </div>
+ 
+    <script>
+        document.addEventListener('DOMContentLoaded',  function() {
+            const vcfFileInput = document.getElementById('vcfFile'); 
+            const convertBtn = document.getElementById('convertBtn'); 
+            const statusDiv = document.getElementById('status'); 
+            
+            // 当选择文件时启用转换按钮 
+            vcfFileInput.addEventListener('change',  function() {
+                convertBtn.disabled  = !this.files  || this.files.length  === 0;
+            });
+            
+            // 转换按钮点击事件 
+            convertBtn.addEventListener('click',  function() {
+                if (!vcfFileInput.files  || vcfFileInput.files.length  === 0) {
+                    showStatus('请先选择 VCF 文件', 'error');
+                    return;
+                }
+                
+                const file = vcfFileInput.files[0]; 
+                const reader = new FileReader();
+                
+                reader.onload  = function(e) {
+                    try {
+                        const vcfContent = e.target.result; 
+                        const contacts = parseVCF(vcfContent);
+                        
+                        if (contacts.length  === 0) {
+                            showStatus('未找到有效的联系人数据', 'error');
+                            return;
+                        }
+                        
+                        // 创建工作簿和工作表 
+                        const wb = XLSX.utils.book_new(); 
+                        const ws = XLSX.utils.json_to_sheet(contacts); 
+                        
+                        // 添加工作表到工作簿 
+                        XLSX.utils.book_append_sheet(wb,  ws, "联系人");
+                        
+                        // 生成 Excel 文件并下载 
+                        const fileName = file.name.replace(/\.vcf$/i,  '') + '.xlsx';
+                        XLSX.writeFile(wb,  fileName);
+                        
+                        showStatus(`成功转换 ${contacts.length}  个联系人`, 'success');
+                    } catch (error) {
+                        console.error(' 转换错误:', error);
+                        showStatus('转换过程中发生错误: ' + error.message,  'error');
+                    }
+                };
+                
+                reader.onerror  = function() {
+                    showStatus('读取文件时发生错误', 'error');
+                };
+                
+                reader.readAsText(file); 
+            });
+            
+            // 解析 VCF 内容 
+            function parseVCF(vcfContent) {
+                
+                   const contacts = [];
+    const vcards = vcfContent.split(/BEGIN:VCARD\r?\n/i); 
+    
+    for (let i = 1; i < vcards.length;  i++) {
+        const vcard = 'BEGIN:VCARD\n' + vcards[i];
+        const contact = {};
+        
+        // 1. 姓名解析（保持不变）
+        const fnMatch = vcard.match(/FN:(.+)/i); 
+        if (fnMatch) contact.name  = fnMatch[1].trim();
+ 
+        // 2. 电话号码解析（优化TYPE参数处理）
+        const telMatches = vcard.match(/TEL(?:;[^:]+)*:([^\r\n]+)/gi)  || [];
+        contact.phones  = telMatches.map(t  => t.split(':')[1].trim()); 
+ 
+        // 3. 组织解析（兼容非标准格式）
+        const orgMatch = vcard.match(/ORG(?:[;:][^\r\n]+)+/i); 
+        if (orgMatch) {
+            contact.organization  = orgMatch[0].split(/[:;]/).pop().trim();
+        }
+ 
+        // 4. 职务解析（处理特殊字符）
+        const titleMatch = vcard.match(/TITLE(?:[;:][^\r\n]+)+/i); 
+        if (titleMatch) {
+            contact.title  = titleMatch[0].split(/[:;]/).pop().trim();
+        }
+ 
+        // 5. 字段标准化处理
+        contact.organization  = contact.organization  || '';
+        contact.title  = contact.title  || '';
+        if (contact.phones)  contact.phone  = contact.phones.join(';  ');
+ 
+        contacts.push(contact); 
+                }
+                
+                return contacts;
+            }
+            
+            // 显示状态信息 
+            function showStatus(message, type) {
+                statusDiv.textContent  = message;
+                statusDiv.className  = 'status ' + type;
+                statusDiv.style.display  = 'block';
+                
+                // 3秒后自动隐藏 
+                setTimeout(() => {
+                    statusDiv.style.display  = 'none';
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>
