@@ -1,5 +1,7 @@
-# Welcome to GitHub Desktop!
-
-This is your README. READMEs are where you can communicate what your project is and how to use it.
-
-Write your name on line 6, save it, and then head back to GitHub Desktop.
+# HTML的一系列小工具
+1、Excel To Vcf :
+vcf可以广泛地应用在安卓手机上，使用vcf可以方便的导入或者导出手机上的联系人。
+Excel表格往往被应用在存储本单位或者个人的所有联系人手机号，单位组织职务等信息
+ExcelToVcf可一方便的让一个单位的联系方式转换成可被手机是别的联系人，并直接导入。
+行政/办公室人员可以方便的让新入职人员快速获取联系方式。
+使用方法是：单位人员将需要的人员联系方式和职务信息做在excel表格中，打开“转换页面”，使用浏览器下载转换好的vcf 将vcf发送到手机上，手机使用“联系人/通讯录”等软件打开即可导入。
