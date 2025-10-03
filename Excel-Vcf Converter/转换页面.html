@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联系人格式转换工具 | Excel ⇄ VCF</title>
+    <script src="xlsx.full.min.js"></script> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> 
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4cc9f0;
+            --danger: #f72585;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: var(--dark);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #4361ee, #3f37c9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            color: #6c757d;
+            font-size: 1.1rem;
+        }
+        
+        .converter-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .converter-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            padding: 2rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .converter-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .card-description {
+            color: #6c757d;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        
+        .file-input {
+            margin-bottom: 1.5rem;
+        }
+        
+        .file-input label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .file-input input[type="file"] {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px dashed #adb5bd;
+            border-radius: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-input input[type="file"]:hover {
+            border-color: var(--primary);
+            background: rgba(67, 97, 238, 0.05);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--secondary);
+            box-shadow: 0 5px 15px rgba(63, 55, 201, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn:disabled {
+            background: #e9ecef;
+            color: #adb5bd;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .download-link {
+            display: none;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+        
+        .download-link a {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.8rem 1.5rem;
+            background: var(--success);
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .download-link a:hover {
+            background: #3aa8d1;
+            box-shadow: 0 5px 15px rgba(76, 201, 240, 0.3);
+        }
+        
+        .status {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .status-success {
+            background: rgba(76, 201, 240, 0.2);
+            color: #0d5463;
+            border-left: 4px solid var(--success);
+        }
+        
+        .status-error {
+            background: rgba(247, 37, 133, 0.2);
+            color: #8a0a3f;
+            border-left: 4px solid var(--danger);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .converter-container {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>联系人格式转换工具</h1>
+            <p class="subtitle">Excel ↔ vCard 双向无损转换 | 2025年10月3日 农历八月十二</p>
+        </header>
+        
+        <div class="converter-container">
+            <!-- VCF 转 Excel 转换器 -->
+            <div class="converter-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <h2 class="card-title">VCF 转 Excel</h2>
+                </div>
+                <p class="card-description">
+                    将手机导出的.vcf联系人文件转换为Excel表格，方便编辑和管理联系人信息。
+                </p>
+                
+                <div class="file-input">
+                    <label for="vcfFile">选择VCF文件</label>
+                    <input type="file" id="vcfFile" accept=".vcf,.vcard">
+                </div>
+                
+                <button id="convertBtn" class="btn btn-primary" disabled>
+                    <i class="fas fa-exchange-alt"></i> 转换为Excel 
+                </button>
+                
+                <div id="vcfStatus" class="status"></div>
+            </div>
+            
+            <!-- Excel 转 VCF 转换器 -->
+            <div class="converter-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-address-card"></i>
+                    </div>
+                    <h2 class="card-title">Excel 转 VCF</h2>
+                </div>
+                <p class="card-description">
+                    将Excel表格中的联系人信息转换为.vcf文件，方便导入到手机通讯录。
+                </p>
+                
+                <div class="file-input">
+                    <label for="excelFile">选择Excel文件</label>
+                    <input type="file" id="excelFile" accept=".xlsx,.xls">
+                </div>
+                
+                <button id="excelToVcfBtn" class="btn btn-primary" disabled>
+                    <i class="fas fa-exchange-alt"></i> 转换为VCF 
+                </button>
+                
+                <div class="download-link" id="downloadLink">
+                    <a href="#" id="vcfDownloadLink">
+                        <i class="fas fa-download"></i> 下载VCF文件 
+                    </a>
+                </div>
+                
+                <div id="excelStatus" class="status"></div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2025 联系人格式转换工具 | 当前时间：15:03</p>
+        </footer>
+    </div>
+ 
+    <script>
+        // 显示状态信息 
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId); 
+            element.textContent  = message;
+            element.className  = `status status-${type}`;
+            element.style.display  = 'block';
+            
+            setTimeout(() => {
+                element.style.display  = 'none';
+            }, 3000);
+        }
+        
+        // ================= VCF 转 Excel 功能 ================= 
+        document.getElementById('vcfFile').addEventListener('change',  function() {
+            document.getElementById('convertBtn').disabled  = !this.files.length; 
+        });
+        
+        document.getElementById('convertBtn').addEventListener('click',  function() {
+            const fileInput = document.getElementById('vcfFile'); 
+            const file = fileInput.files[0]; 
+            
+            if (!file) {
+                showStatus('vcfStatus', '请先选择VCF文件', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload  = function(e) {
+                try {
+                    const vcfContent = e.target.result; 
+                    const contacts = parseVCF(vcfContent);
+                    
+                    if (contacts.length  === 0) {
+                        showStatus('vcfStatus', '未找到有效的联系人数据', 'error');
+                        return;
+                    }
+                    
+                    // 创建工作簿 
+                    const wb = XLSX.utils.book_new(); 
+                    const ws = XLSX.utils.json_to_sheet(contacts); 
+                    XLSX.utils.book_append_sheet(wb,  ws, "联系人");
+                    
+                    // 生成文件名 
+                    const fileName = file.name.replace(/\.vcf$/i,  '') + '.xlsx';
+                    XLSX.writeFile(wb,  fileName);
+                    
+                    showStatus('vcfStatus', `成功转换 ${contacts.length}  个联系人`, 'success');
+                } catch (error) {
+                    console.error(' 转换错误:', error);
+                    showStatus('vcfStatus', '转换失败: ' + error.message,  'error');
+                }
+            };
+            reader.onerror  = () => showStatus('vcfStatus', '文件读取失败', 'error');
+            reader.readAsText(file); 
+        });
+        
+        // 解析VCF文件 
+        function parseVCF(vcfContent) {
+            const contacts = [];
+            const vcards = vcfContent.split(/BEGIN:VCARD\r?\n/i); 
+            
+            for (let i = 1; i < vcards.length;  i++) {
+                const vcard = 'BEGIN:VCARD\n' + vcards[i];
+                const contact = {};
+                
+                // 提取各字段 
+                const fnMatch = vcard.match(/FN:(.+)/i); 
+                if (fnMatch) contact.姓名 = fnMatch[1].trim();
+                
+                const telMatches = vcard.match(/TEL(?:;[^:]+)*:([^\r\n]+)/gi)  || [];
+                contact.电话 = telMatches.map(t  => t.split(':')[1].trim()).join(';  ');
+                
+                const orgMatch = vcard.match(/ORG(?:[;:][^\r\n]+)+/i); 
+                if (orgMatch) contact.组织 = orgMatch[0].split(/[:;]/).pop().trim();
+                
+                const titleMatch = vcard.match(/TITLE(?:[;:][^\r\n]+)+/i); 
+                if (titleMatch) contact.职务 = titleMatch[0].split(/[:;]/).pop().trim();
+                
+                const emailMatches = vcard.match(/EMAIL(?:;[^:]+)*:([^\r\n]+)/gi)  || [];
+                contact.邮箱 = emailMatches.map(e  => e.split(':')[1].trim()).join(';  ');
+                
+                if (Object.keys(contact).length  > 0) {
+                    contacts.push(contact); 
+                }
+            }
+            
+            return contacts;
+        }
+        
+        // ================= Excel 转 VCF 功能 ================= 
+        document.getElementById('excelFile').addEventListener('change',  function() {
+            document.getElementById('excelToVcfBtn').disabled  = !this.files.length; 
+        });
+        
+        document.getElementById('excelToVcfBtn').addEventListener('click',  function() {
+            const fileInput = document.getElementById('excelFile'); 
+            const file = fileInput.files[0]; 
+            
+            if (!file) {
+                showStatus('excelStatus', '请先选择Excel文件', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload  = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result); 
+                    const workbook = XLSX.read(data,  { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet); 
+                    
+                    // 生成VCF内容 
+                  const generateVCF = (jsonData) => {
+  // 1. 定义字段映射关系 
+  const FIELD_MAPPING = {
+    name: { aliases: ['姓名', 'Name', 'FN'], required: true },
+    phone: { aliases: ['电话', 'Phone', 'TEL'], required: true },
+    email: { aliases: ['邮箱', 'Email', 'EMAIL'] },
+    org: { aliases: ['组织', 'Organization', 'ORG'] },
+    title: { aliases: ['职务', 'Title', '职位'] }
+  };
+ 
+  // 2. 安全获取字段值 
+  const getFieldValue = (contact, type) => {
+    const fieldConfig = FIELD_MAPPING[type];
+    for (const alias of fieldConfig.aliases)  {
+      if (contact[alias] !== undefined) {
+        return contact[alias]?.toString().trim() || '';
+      }
+    }
+    return '';
+  };
+ 
+  // 3. 生成单个vCard 
+  const buildVCard = (contact) => {
+    const vcard = ['BEGIN:VCARD', 'VERSION:3.0'];
+    
+    // 处理必填字段 
+    const name = getFieldValue(contact, 'name');
+    const phone = getFieldValue(contact, 'phone');
+    
+    if (!name && !phone) return null;
+    
+    vcard.push(`FN:${name}`); 
+    
+    // 处理多值字段 
+    const phones = phone.split(';').filter(Boolean); 
+    phones.forEach(p  => vcard.push(`TEL;TYPE=CELL:${p.trim()}`)); 
+    
+    // 处理其他字段 
+    const email = getFieldValue(contact, 'email');
+    if (email) email.split(';').forEach(e  => vcard.push(`EMAIL:${e.trim()}`)); 
+    
+    const org = getFieldValue(contact, 'org');
+    if (org) vcard.push(`ORG:${org}`); 
+    
+    const title = getFieldValue(contact, 'title');
+    if (title) vcard.push(`TITLE:${title}`); 
+    
+    vcard.push('END:VCARD'); 
+    return vcard.join('\n'); 
+  };
+ 
+  // 4. 处理全部数据 
+  return jsonData 
+    .map(buildVCard)
+    .filter(Boolean)
+    .join('\n\n');
+};
+                    // 设置下载链接 
+                    const blob = new Blob([vcfContent], { type: 'text/vcard' });
+                    const url = URL.createObjectURL(blob); 
+                    const downloadLink = document.getElementById('vcfDownloadLink'); 
+                    
+                    downloadLink.href  = url;
+                    downloadLink.download  = file.name.replace(/\.[^/.]+$/,  '') + '.vcf';
+                    document.getElementById('downloadLink').style.display  = 'block';
+                    
+                    showStatus('excelStatus', `成功转换 ${jsonData.length}  条联系人`, 'success');
+                } catch (error) {
+                    console.error(' 转换错误:', error);
+                    showStatus('excelStatus', '转换失败: ' + error.message,  'error');
+                }
+            };
+            reader.onerror  = () => showStatus('excelStatus', '文件读取失败', 'error');
+            reader.readAsArrayBuffer(file); 
+        });
+    </script>
+</body>
+</html>
